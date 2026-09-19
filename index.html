@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RVCA 角色庫</title>
+
+<!-- 全域錯誤監聽 -->
+<script>
+  window.onerror = function(msg, url, line) {
+    alert("程式發生錯誤：\n" + msg + "\n行數：" + line);
+    return false;
+  };
+</script>
+
+<!-- Firebase SDK Compat 版本 -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+<style>
+:root{
+  --bg:#f5f3f7; --panel:#fff; --text:#28242d; --muted:#817986;
+  --accent:#77658f; --accent2:#a78db8; --line:#e8e1eb; --danger:#b95757;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif;background:var(--bg);color:var(--text)}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer;border:0}
+.app{max-width:1400px;margin:auto;padding:24px}
+header{display:flex;justify-space:between;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+h1{margin:0;font-size:28px}.subtitle{color:var(--muted);margin-top:4px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{padding:10px 15px;border-radius:12px;background:#eee8f1;color:var(--text)}
+.btn.primary{background:var(--accent);color:white}.btn.danger{background:#f6e3e3;color:var(--danger)}
+.user-info{font-size:14px;color:var(--accent);font-weight:600;display:flex;align-items:center;gap:8px;background:#efe8f3;padding:6px 12px;border-radius:10px}
+.toolbar{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+input,select,textarea{border:1px solid var(--line);border-radius:10px;padding:10px;background:white;color:var(--text);outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent2)}
+.search{flex:1;min-width:220px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 4px 14px #3d294008}
+.card-img{width:100%;aspect-ratio:1/1;object-fit:cover;background:#eee9f0;display:block}
+.card-body{padding:15px}.name{font-size:19px;font-weight:700}.meta{font-size:13px;color:var(--muted);margin:5px 0 10px}
+.tags{display:flex;flex-wrap:wrap;gap:6px}.tag{background:#f0ebf3;color:#665a70;padding:4px 8px;border-radius:999px;font-size:12px}
+.card-actions{display:flex;gap:7px;margin-top:14px}.small{padding:7px 10px;border-radius:999px;background:#f0edf2}
+.empty{text-align:center;padding:70px 20px;color:var(--muted);background:white;border:1px dashed var(--line);border-radius:18px}
+.modal{position:fixed;inset:0;background:#20192788;display:none;align-items:center;justify-content:center;padding:18px;z-index:10}
+.modal.show{display:flex}.dialog{background:white;border-radius:20px;width:min(850px,100%);max-height:92vh;overflow:auto;padding:22px}
+.dialog h2{margin-top:0}.form{display:grid;grid-template-columns:1fr 1fr;gap:13px}.field{display:flex;flex-direction:column;gap:6px}.full{grid-column:1/-1}.field label{font-size:13px;color:var(--muted);font-weight:600}
+.preview{width:130px;height:130px;border-radius:16px;object-fit:cover;background:#eee9f0;border:1px solid var(--line)}
+.avatar-row{display:flex;align-items:center;gap:15px}.footer-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+.detail{display:grid;grid-template-columns:180px 1fr;gap:20px}.detail img{width:180px;aspect-ratio:1;object-fit:cover;border-radius:18px}
+.info-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.info-box{background:#f8f5f9;border-radius:12px;padding:11px}.info-box b{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+@media(max-width:650px){.app{padding:14px}.form,.detail,.info-grid{grid-template-columns:1fr}.detail img{width:150px}.dialog{padding:16px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div><h1>✦ 角色庫</h1><div class="subtitle">建立、搜尋與整理你的世界觀角色</div></div>
+  <div class="actions">
+    <div id="userInfo" class="user-info">⏳ 檢查狀態中...</div>
+    <button id="loginBtn" class="btn primary" onclick="loginWithGoogle()">Google 登入</button>
+    <button id="logoutBtn" class="btn" onclick="logout()" style="display:none;">登出</button>
+
+    <button class="btn" onclick="exportData()">匯出資料</button>
+    <button class="btn" onclick="document.getElementById('importFile').click()">匯入資料</button>
+    <input id="importFile" type="file" accept=".json" hidden onchange="importData(event)">
+    <button class="btn primary" onclick="openEditor()">＋ 新增角色</button>
+  </div>
+</header>
+
+<div class="toolbar">
+  <input id="search" class="search" placeholder="搜尋姓名、稱號、設定……" oninput="render()">
+  <select id="faction" onchange="render()"><option value="">全部陣營</option></select>
+  <select id="sort" onchange="render()">
+    <option value="name">依姓名</option><option value="birthday">依生日</option><option value="created">依建立時間</option>
+  </select>
+</div>
+
+<main id="cards"></main>
+</div>
+
+<!-- Modal -->
+<div class="modal" id="editorModal">
+<div class="dialog">
+  <h2 id="editorTitle">新增角色</h2>
+  <form id="form" onsubmit="event.preventDefault();">
+    <input type="hidden" id="id">
+    <div class="field full"><label>角色頭像</label><div class="avatar-row">
+      <img id="preview" class="preview" alt="頭像預覽">
+      <input id="avatar" type="file" accept="image/*" onchange="previewImage(event)">
+    </div></div>
+    <div class="field"><label>姓名 *</label><input id="name" required placeholder="例如：XXX"></div>
+    <div class="field"><label>稱號／別名</label><input id="alias" placeholder="例如：花精靈王"></div>
+    <div class="field"><label>生日</label><input id="birthday" type="date"></div>
+    <div class="field"><label>年齡</label><input id="age" placeholder="例如：不明／永生"></div>
+    <div class="field"><label>性別</label><input id="gender" placeholder="例如：女"></div>
+    <div class="field"><label>種族</label><input id="race" placeholder="例如：吸血鬼×人類"></div>
+    <div class="field"><label>陣營</label><input id="factionInput" placeholder="例如：普諾齊"></div>
+    <div class="field"><label>居住地</label><input id="home" placeholder="例如：某座哥德式城堡"></div>
+    <div class="field"><label>職業／身分</label><input id="job" placeholder="例如：魔法師、神官"></div>
+    <div class="field"><label>喜歡</label><input id="likes" placeholder="用逗號分隔"></div>
+    <div class="field"><label>討厭</label><input id="dislikes" placeholder="用逗號分隔"></div>
+    <div class="field"><label>生日花／代表物</label><input id="symbol" placeholder="自由填寫"></div>
+    <div class="field"><label>能力／魔法</label><input id="powers" placeholder="例如：植物魔法"></div>
+    <div class="field full"><label>性格</label><textarea id="personality" rows="3"></textarea></div>
+    <div class="field full"><label>背景故事</label><textarea id="backstory" rows="5"></textarea></div>
+    <div class="field full"><label>備註／劇情伏筆</label><textarea id="notes" rows="4"></textarea></div>
+  </form>
+  <div class="footer-actions">
+    <button class="btn" onclick="closeEditor()">取消</button>
+    <button class="btn primary" onclick="saveCharacter()">儲存角色</button>
+  </div>
+</div>
+</div>
+
+<div class="modal" id="detailModal">
+<div class="dialog">
+  <div id="detailContent"></div>
+  <div class="footer-actions"><button class="btn" onclick="closeDetail()">關閉</button></div>
+</div>
+</div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAJu6ccYAYRksvKMKL6Mp4PQ96T8366VuE",
+    authDomain: "lioraviel-archive.firebaseapp.com",
+    projectId: "lioraviel-archive",
+    storageBucket: "lioraviel-archive.firebasestorage.app",
+    messagingSenderId: "409769389977",
+    appId: "1:409769389977:web:50bf5ef50a7a309676ad08",
+    measurementId: "G-WW2VYQF038"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  // 設定持久化登入狀態 (LOCAL)
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+  let currentUser = null;
+  let chars = [];
+  let tempAvatar = '';
+
+  const $ = function(id) { return document.getElementById(id); };
+
+  function esc(s) {
+    if (!s) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function placeholder(name) {
+    var n = name || '角色';
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500"><rect width="100%" height="100%" fill="#eee9f0"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#887d8e" font-size="42">' + n.slice(0,8) + '</text></svg>';
+    return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+  }
+
+  function splitTags(s) {
+    if (!s) return [];
+    return s.split(',').map(function(x){ return x.trim(); }).filter(Boolean);
+  }
+
+  // 自動監聽登入狀態變化
+  auth.onAuthStateChanged(function(user) {
+    currentUser = user;
+    if (user) {
+      $('userInfo').textContent = '🟢 已登入：' + (user.displayName || user.email);
+      $('loginBtn').style.display = 'none';
+      $('logoutBtn').style.display = 'inline-block';
+      loadCloudData();
+    } else {
+      $('userInfo').textContent = '⚪ 離線模式（免登入）';
+      $('loginBtn').style.display = 'inline-block';
+      $('logoutBtn').style.display = 'none';
+      chars = JSON.parse(localStorage.getItem('rvca_chars') || '[]');
+      render();
+    }
+  });
+
+  // 改用 signInWithPopup，解決手機重導向跳轉遺失狀態的問題
+  function loginWithGoogle() {
+    var provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider)
+      .then(function(result) {
+        alert("登入成功！歡迎 " + (result.user.displayName || result.user.email));
+      })
+      .catch(function(error) {
+        // 如果瀏覽器封鎖了彈窗，自動備援切換為重導向模式
+        if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
+          auth.signInWithRedirect(provider);
+        } else {
+          alert("登入遭遇問題：" + error.message);
+        }
+      });
+  }
+
+  function logout() {
+    auth.signOut().then(function() { 
+      alert('已成功登出');
+    });
+  }
+
+  function loadCloudData() {
+    if (!currentUser) return;
+    $('cards').innerHTML = '<div class="empty">☁️ 正在同步雲端資料中...</div>';
+    db.collection('users').doc(currentUser.uid).collection('characters').get()
+      .then(function(snapshot) {
+        chars = snapshot.docs.map(function(doc) {
+          var data = doc.data();
+          data.id = doc.id;
+          return data;
+        });
+        render();
+      })
+      .catch(function(err) {
+        alert('雲端讀取失敗：' + err.message + '\n將改為讀取本機資料。');
+        chars = JSON.parse(localStorage.getItem('rvca_chars') || '[]');
+        render();
+      });
+  }
+
+  function updateFaction() {
+    var fs = [];
+    chars.forEach(function(c) {
+      if (c.faction && fs.indexOf(c.faction) === -1) {
+        fs.push(c.faction);
+      }
+    });
+    fs.sort();
+    var el = $('faction');
+    var old = el.value;
+    var html = '<option value="">全部陣營</option>';
+    fs.forEach(function(f) {
+      html += '<option>' + esc(f) + '</option>';
+    });
+    el.innerHTML = html;
+    el.value = fs.indexOf(old) !== -1 ? old : '';
+  }
+
+  function render() {
+    updateFaction();
+    var q = $('search').value.toLowerCase().trim();
+    var f = $('faction').value;
+    var sort = $('sort').value;
+
+    var list = chars.filter(function(c) {
+      var text = JSON.stringify(c).toLowerCase();
+      return (!q || text.indexOf(q) !== -1) && (!f || c.faction === f);
+    });
+
+    list.sort(function(a, b) {
+      if (sort === 'birthday') return (a.birthday || '').localeCompare(b.birthday || '');
+      if (sort === 'created') return (b.created || 0) - (a.created || 0);
+      return (a.name || '').localeCompare(b.name || '');
+    });
+
+    if (!list.length) {
+      $('cards').innerHTML = '<div class="empty">還沒有角色卡。<br><br>按右上角「＋ 新增角色」開始建立吧！</div>';
+      return;
+    }
+
+    var html = '<div class="grid">';
+    list.forEach(function(c) {
+      var tags = [c.faction, c.job].concat(splitTags(c.likes).slice(0, 2)).filter(Boolean);
+      var tagHtml = tags.map(function(x) { return '<span class="tag">' + esc(x) + '</span>'; }).join('');
+
+      html += '<article class="card">';
+      html += '  <img class="card-img" src="' + (c.avatar || placeholder(c.name)) + '" alt="">';
+      html += '  <div class="card-body">';
+      html += '    <div class="name">' + esc(c.name) + '</div>';
+      html += '    <div class="meta">' + esc(c.alias || '未設定稱號') + ' · ' + esc(c.race || '未設定種族') + '</div>';
+      html += '    <div class="tags">' + tagHtml + '</div>';
+      html += '    <div class="card-actions">';
+      html += '      <button class="small" onclick="viewDetail(\'' + c.id + '\')">查看</button>';
+      html += '      <button class="small" onclick="openEditor(\'' + c.id + '\')">編輯</button>';
+      html += '      <button class="small" onclick="deleteCharacter(\'' + c.id + '\')">刪除</button>';
+      html += '    </div>';
+      html += '  </div>';
+      html += '</article>';
+    });
+    html += '</div>';
+    $('cards').innerHTML = html;
+  }
+
+  function openEditor(id) {
+    $('editorModal').classList.add('show');
+    var c = chars.find(function(x) { return x.id === id; });
+    $('editorTitle').textContent = c ? '編輯角色' : '新增角色';
+    $('form').reset();
+    tempAvatar = c ? (c.avatar || '') : '';
+    $('id').value = c ? (c.id || '') : '';
+
+    if (c) {
+      var fields = ['name','alias','birthday','age','gender','race','factionInput','home','job','likes','dislikes','symbol','powers','personality','backstory','notes'];
+      fields.forEach(function(k) {
+        var el = $(k);
+        if (el) el.value = c[k] || '';
+      });
+    }
+    $('preview').src = tempAvatar || placeholder(c ? c.name : '角色');
+  }
+
+  function closeEditor() {
+    $('editorModal').classList.remove('show');
+  }
+
+  function previewImage(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var r = new FileReader();
+    r.onload = function() {
+      tempAvatar = r.result;
+      $('preview').src = tempAvatar;
+    };
+    r.readAsDataURL(file);
+  }
+
+  function saveCharacter() {
+    var id = $('id').value || ('id_' + Date.now());
+    var old = chars.find(function(c) { return c.id === id; });
+    var c = {
+      id: id,
+      created: old ? (old.created || Date.now()) : Date.now(),
+      avatar: tempAvatar
+    };
+
+    var fields = ['name','alias','birthday','age','gender','home','job','likes','dislikes','symbol','powers','personality','backstory','notes'];
+    fields.forEach(function(k) {
+      var el = $(k);
+      if (el) c[k] = el.value.trim();
+    });
+    c.race = $('race').value.trim();
+    c.faction = $('factionInput').value.trim();
+
+    if (!c.name) {
+      alert('請至少填寫姓名！');
+      return;
+    }
+
+    if (currentUser) {
+      db.collection('users').doc(currentUser.uid).collection('characters').doc(id).set(c)
+        .then(function() {
+          if (old) Object.assign(old, c);
+          else chars.push(c);
+          closeEditor();
+          render();
+        })
+        .catch(function(err) {
+          alert('儲存失敗：' + err.message);
+        });
+    } else {
+      if (old) Object.assign(old, c);
+      else chars.push(c);
+      localStorage.setItem('rvca_chars', JSON.stringify(chars));
+      closeEditor();
+      render();
+    }
+  }
+
+  function deleteCharacter(id) {
+    var c = chars.find(function(x) { return x.id === id; });
+    if (!c) return;
+    if (confirm('確定要刪除「' + c.name + '」嗎？')) {
+      if (currentUser) {
+        db.collection('users').doc(currentUser.uid).collection('characters').doc(id).delete()
+          .then(function() {
+            chars = chars.filter(function(x) { return x.id !== id; });
+            render();
+          });
+      } else {
+        chars = chars.filter(function(x) { return x.id !== id; });
+        localStorage.setItem('rvca_chars', JSON.stringify(chars));
+        render();
+      }
+    }
+  }
+
+  function viewDetail(id) {
+    var c = chars.find(function(x) { return x.id === id; });
+    if (!c) return;
+    var fields = [
+      ['生日', c.birthday], ['年齡', c.age], ['性別', c.gender],
+      ['種族', c.race], ['陣營', c.faction], ['居住地', c.home],
+      ['職業／身分', c.job], ['代表物', c.symbol], ['能力／魔法', c.powers],
+      ['喜歡', c.likes], ['討厭', c.dislikes]
+    ];
+
+    var html = '<div class="detail">';
+    html += '<img src="' + (c.avatar || placeholder(c.name)) + '" alt="">';
+    html += '<div><h2>' + esc(c.name) + '</h2><div class="meta">' + esc(c.alias || '') + '</div>';
+    html += '<div class="info-grid">';
+    fields.forEach(function(item) {
+      html += '<div class="info-box"><b>' + item[0] + '</b>' + esc(item[1] || '—') + '</div>';
+    });
+    html += '</div></div></div>';
+    html += '<hr style="border:0;border-top:1px solid var(--line);margin:20px 0">';
+    html += '<div class="info-box"><b>性格</b>' + esc(c.personality || '—').replace(/\n/g, '<br>') + '</div><br>';
+    html += '<div class="info-box"><b>背景故事</b>' + esc(c.backstory || '—').replace(/\n/g, '<br>') + '</div><br>';
+    html += '<div class="info-box"><b>備註／劇情伏筆</b>' + esc(c.notes || '—').replace(/\n/g, '<br>') + '</div>';
+
+    $('detailContent').innerHTML = html;
+    $('detailModal').classList.add('show');
+  }
+
+  function closeDetail() {
+    $('detailModal').classList.remove('show');
+  }
+
+  function exportData() {
+    var blob = new Blob([JSON.stringify(chars, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'RVCA角色庫.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function importData(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    var r = new FileReader();
+    r.onload = function() {
+      try {
+        var data = JSON.parse(r.result);
+        if (!Array.isArray(data)) throw new Error('格式不正確');
+        chars = data;
+        if (currentUser) {
+          var batch = db.batch();
+          chars.forEach(function(item) {
+            var ref = db.collection('users').doc(currentUser.uid).collection('characters').doc(item.id || ('id_' + Date.now()));
+            batch.set(ref, item);
+          });
+          batch.commit().then(function() { alert('匯入並同步至雲端成功！'); });
+        } else {
+          localStorage.setItem('rvca_chars', JSON.stringify(chars));
+          alert('匯入本機成功！');
+        }
+        render();
+      } catch (err) {
+        alert('這不是有效的 JSON 檔案。');
+      }
+    };
+    r.readAsText(file);
+    e.target.value = '';
+  }
+</script>
+</body>
+</html>
