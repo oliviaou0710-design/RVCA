@@ -1,0 +1,3145 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>RVCA 角色庫</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+<style>
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Noto Sans TC",
+    "Microsoft JhengHei",
+    sans-serif;
+  background:#f5f6fa;
+  color:#333;
+}
+
+button,
+input,
+select,
+textarea{
+  font:inherit;
+}
+
+button{
+  cursor:pointer;
+}
+
+header{
+  background:#fff;
+  border-bottom:1px solid #e5e7eb;
+  position:sticky;
+  top:0;
+  z-index:100;
+}
+
+.header-inner{
+  max-width:1200px;
+  margin:auto;
+  padding:16px 20px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+}
+
+.logo{
+  font-size:24px;
+  font-weight:800;
+}
+
+.logo span{
+  color:#8b7cf6;
+}
+
+.user-area{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.user-name{
+  font-size:14px;
+  color:#666;
+}
+
+.btn{
+  border:none;
+  border-radius:10px;
+  padding:9px 15px;
+  background:#8b7cf6;
+  color:#fff;
+  transition:.2s;
+}
+
+.btn:hover{
+  opacity:.88;
+}
+
+.btn.secondary{
+  background:#e9e9ef;
+  color:#444;
+}
+
+.btn.danger{
+  background:#e57373;
+}
+
+.btn.small{
+  padding:7px 11px;
+  font-size:13px;
+}
+
+main{
+  max-width:1200px;
+  margin:auto;
+  padding:25px 20px 50px;
+}
+
+.toolbar{
+  background:#fff;
+  border-radius:16px;
+  padding:16px;
+  margin-bottom:20px;
+  box-shadow:0 3px 15px rgba(0,0,0,.04);
+}
+
+.toolbar-top{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:12px;
+}
+
+.search{
+  flex:1;
+  min-width:220px;
+}
+
+input,
+select,
+textarea{
+  border:1px solid #ddd;
+  border-radius:9px;
+  padding:10px 12px;
+  outline:none;
+  background:#fff;
+}
+
+input:focus,
+select:focus,
+textarea:focus{
+  border-color:#8b7cf6;
+}
+
+.toolbar-bottom{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.toolbar-bottom select{
+  min-width:150px;
+}
+
+.cards{
+  display:grid;
+  grid-template-columns:
+    repeat(auto-fill,minmax(260px,1fr));
+  gap:18px;
+}
+
+.card{
+  background:#fff;
+  border-radius:16px;
+  overflow:hidden;
+  box-shadow:0 4px 18px rgba(0,0,0,.06);
+  transition:.2s;
+}
+
+.card:hover{
+  transform:translateY(-2px);
+  box-shadow:0 7px 22px rgba(0,0,0,.09);
+}
+
+.card-image{
+  width:100%;
+  aspect-ratio:1/1;
+  background:#eee;
+  overflow:hidden;
+}
+
+.card-image img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+
+.card-body{
+  padding:15px;
+}
+
+.card-name{
+  font-size:20px;
+  font-weight:700;
+  margin-bottom:3px;
+}
+
+.card-alias{
+  color:#888;
+  font-size:13px;
+  margin-bottom:10px;
+}
+
+.tags{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  margin-bottom:12px;
+}
+
+.tag{
+  background:#f0eefc;
+  color:#6c5fd3;
+  border-radius:999px;
+  padding:4px 9px;
+  font-size:12px;
+}
+
+.card-info{
+  font-size:13px;
+  color:#666;
+  line-height:1.7;
+}
+
+.card-actions{
+  display:flex;
+  gap:7px;
+  margin-top:13px;
+}
+
+.empty{
+  text-align:center;
+  padding:70px 20px;
+  color:#999;
+  grid-column:1/-1;
+}
+
+.modal-bg{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.5);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  z-index:500;
+}
+
+.modal-bg.show{
+  display:flex;
+}
+
+.modal{
+  width:min(760px,100%);
+  max-height:90vh;
+  overflow-y:auto;
+  background:#fff;
+  border-radius:18px;
+  padding:22px;
+}
+
+.modal-title{
+  font-size:22px;
+  font-weight:700;
+  margin-bottom:18px;
+}
+
+.form-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:12px;
+}
+
+.field{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+}
+
+.field.full{
+  grid-column:1/-1;
+}
+
+.field label{
+  font-size:13px;
+  color:#666;
+}
+
+textarea{
+  min-height:100px;
+  resize:vertical;
+}
+
+.avatar-preview{
+  width:150px;
+  height:150px;
+  border-radius:15px;
+  overflow:hidden;
+  background:#eee;
+  margin-bottom:10px;
+}
+
+.avatar-preview img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.modal-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  margin-top:20px;
+}
+
+.view-avatar{
+  width:180px;
+  height:180px;
+  border-radius:15px;
+  overflow:hidden;
+  margin:0 auto 20px;
+  background:#eee;
+}
+
+.view-avatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.view-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:15px;
+}
+
+.view-item{
+  background:#f7f7fa;
+  border-radius:10px;
+  padding:12px;
+}
+
+.view-item.full{
+  grid-column:1/-1;
+}
+
+.view-label{
+  color:#888;
+  font-size:12px;
+  margin-bottom:4px;
+}
+
+.view-value{
+  white-space:pre-wrap;
+  line-height:1.6;
+}
+
+.status{
+  margin-bottom:15px;
+  padding:10px 13px;
+  background:#f2f2f7;
+  border-radius:10px;
+  font-size:13px;
+  color:#666;
+}
+
+.status.cloud{
+  color:#4d8c63;
+  background:#edf8f0;
+}
+
+.status.local{
+  color:#777;
+}
+
+.hidden{
+  display:none !important;
+}
+
+@media(max-width:700px){
+
+  .header-inner{
+    padding:13px 15px;
+  }
+
+  .logo{
+    font-size:20px;
+  }
+
+  .user-name{
+    display:none;
+  }
+
+  main{
+    padding:18px 12px 40px;
+  }
+
+  .form-grid{
+    grid-template-columns:1fr;
+  }
+
+  .field.full{
+    grid-column:auto;
+  }
+
+  .view-grid{
+    grid-template-columns:1fr;
+  }
+
+  .view-item.full{
+    grid-column:auto;
+  }
+
+  .cards{
+    grid-template-columns:
+      repeat(2,minmax(0,1fr));
+    gap:10px;
+  }
+
+  .card-body{
+    padding:11px;
+  }
+
+  .card-name{
+    font-size:17px;
+  }
+
+  .card-info{
+    font-size:12px;
+  }
+
+  .card-actions{
+    flex-direction:column;
+  }
+
+  .card-actions .btn{
+    width:100%;
+  }
+
+}
+
+@media(max-width:430px){
+
+  .cards{
+    grid-template-columns:1fr;
+  }
+
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+
+  <div class="header-inner">
+
+    <div class="logo">
+      <span>RVCA</span> 角色庫
+    </div>
+
+    <div class="user-area">
+
+      <span
+        id="userName"
+        class="user-name"
+      ></span>
+
+      <button
+        id="loginBtn"
+        class="btn"
+        onclick="login()"
+      >
+        Google 登入
+      </button>
+
+      <button
+        id="logoutBtn"
+        class="btn secondary hidden"
+        onclick="logout()"
+      >
+        登出
+      </button>
+
+    </div>
+
+  </div>
+
+</header>
+
+
+<main>
+
+  <div
+    id="status"
+    class="status local"
+  >
+    目前使用本機儲存
+  </div>
+
+
+  <div class="toolbar">
+
+    <div class="toolbar-top">
+
+      <input
+        id="search"
+        class="search"
+        type="text"
+        placeholder="搜尋角色姓名、別名、陣營..."
+      >
+
+      <button
+        class="btn"
+        onclick="openCreateModal()"
+      >
+        ＋ 新增角色
+      </button>
+
+    </div>
+
+
+    <div class="toolbar-bottom">
+
+      <select id="factionFilter">
+        <option value="">全部陣營</option>
+      </select>
+
+
+      <select
+        id="sort"
+        onchange="changeSort()"
+      >
+
+        <option value="name">
+          依姓名
+        </option>
+
+        <option value="birthday">
+          依生日
+        </option>
+
+        <option value="created">
+          依建立時間
+        </option>
+
+        <option value="faction">
+          依陣營
+        </option>
+
+      </select>
+
+
+      <button
+        class="btn secondary"
+        onclick="exportData()"
+      >
+        匯出 JSON
+      </button>
+
+      <button
+        class="btn secondary"
+        onclick="document.getElementById('importFile').click()"
+      >
+        匯入 JSON
+      </button>
+
+      <input
+        id="importFile"
+        type="file"
+        accept=".json,application/json"
+        class="hidden"
+      >
+
+    </div>
+
+  </div>
+
+
+  <div
+    id="cards"
+    class="cards"
+  ></div>
+
+</main>
+
+
+<!-- =========================
+     新增 / 編輯角色
+========================= -->
+
+<div
+  id="editModal"
+  class="modal-bg"
+>
+
+  <div class="modal">
+
+    <div
+      id="editTitle"
+      class="modal-title"
+    >
+      新增角色
+    </div>
+
+
+    <div class="form-grid">
+
+
+      <div class="field full">
+
+        <label>
+          角色頭像
+        </label>
+
+        <div class="avatar-preview">
+
+          <img
+            id="preview"
+            alt="角色頭像"
+          >
+
+        </div>
+
+        <input
+          id="avatar"
+          type="file"
+          accept="image/*"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          姓名
+        </label>
+
+        <input
+          id="name"
+          type="text"
+          placeholder="角色姓名"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          別名
+        </label>
+
+        <input
+          id="alias"
+          type="text"
+          placeholder="暱稱、稱號等"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          生日
+        </label>
+
+        <input
+          id="birthday"
+          type="date"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          年齡
+        </label>
+
+        <input
+          id="age"
+          type="text"
+          placeholder="例如：17"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          性別
+        </label>
+
+        <input
+          id="gender"
+          type="text"
+          placeholder="例如：女"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          種族
+        </label>
+
+        <input
+          id="race"
+          type="text"
+          placeholder="例如：人類"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          陣營
+        </label>
+
+        <input
+          id="faction"
+          type="text"
+          placeholder="例如：星辰陣營"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          居住地
+        </label>
+
+        <input
+          id="home"
+          type="text"
+          placeholder="角色目前居住的地方"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          職業
+        </label>
+
+        <input
+          id="job"
+          type="text"
+          placeholder="例如：魔法師"
+        >
+
+      </div>
+
+
+      <div class="field full">
+
+        <label>
+          喜歡
+        </label>
+
+        <textarea
+          id="likes"
+          placeholder="喜歡的人事物..."
+        ></textarea>
+
+      </div>
+
+
+      <div class="field full">
+
+        <label>
+          不喜歡
+        </label>
+
+        <textarea
+          id="dislikes"
+          placeholder="不喜歡的人事物..."
+        ></textarea>
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          代表符號
+        </label>
+
+        <input
+          id="symbol"
+          type="text"
+          placeholder="例如：✦"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label>
+          能力
+        </label>
+
+        <input
+          id="powers"
+          type="text"
+          placeholder="特殊能力"
+        >
+
+      </div>
+
+
+      <div class="field full">
+
+        <label>
+          個性
+        </label>
+
+        <textarea
+          id="personality"
+          placeholder="角色性格..."
+        ></textarea>
+
+      </div>
+
+
+      <div class="field full">
+
+        <label>
+          背景故事
+        </label>
+
+        <textarea
+          id="backstory"
+          placeholder="角色背景故事..."
+        ></textarea>
+
+      </div>
+
+
+      <div class="field full">
+
+        <label>
+          備註
+        </label>
+
+        <textarea
+          id="notes"
+          placeholder="其他備註..."
+        ></textarea>
+
+      </div>
+
+    </div>
+
+
+    <div class="modal-actions">
+
+      <button
+        class="btn secondary"
+        onclick="closeEditModal()"
+      >
+        取消
+      </button>
+
+      <button
+        class="btn"
+        onclick="saveCharacter()"
+      >
+        儲存
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- =========================
+     查看角色
+========================= -->
+
+<div
+  id="viewModal"
+  class="modal-bg"
+>
+
+  <div class="modal">
+
+    <div id="viewContent"></div>
+
+    <div class="modal-actions">
+
+      <button
+        class="btn secondary"
+        onclick="closeViewModal()"
+      >
+        關閉
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   Firebase 設定
+========================================================= */
+
+const firebaseConfig = {
+
+  apiKey:
+    "AIzaSyAJu6ccYAYRksvKMKL6Mp4PQ96T8366VuE",
+
+  authDomain:
+    "lioraviel-archive.firebaseapp.com",
+
+  projectId:
+    "lioraviel-archive",
+
+  storageBucket:
+    "lioraviel-archive.firebasestorage.app",
+
+  messagingSenderId:
+    "409769389977",
+
+  appId:
+    "1:409769389977:web:50bf5ef50a7a309676ad08",
+
+  measurementId:
+    "G-WW2VYQF038"
+
+};
+
+
+firebase.initializeApp(firebaseConfig);
+
+const auth =
+  firebase.auth();
+
+const db =
+  firebase.firestore();
+
+const provider =
+  new firebase.auth.GoogleAuthProvider();
+
+
+/* =========================================================
+   基本工具
+========================================================= */
+
+function $(id){
+  return document.getElementById(id);
+}
+
+
+function placeholder(text){
+
+  const svg = `
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="600"
+      height="600"
+      viewBox="0 0 600 600"
+    >
+
+      <rect
+        width="600"
+        height="600"
+        fill="#eeeeee"
+      />
+
+      <text
+        x="300"
+        y="310"
+        text-anchor="middle"
+        font-size="48"
+        fill="#999999"
+      >
+        ${text}
+      </text>
+
+    </svg>
+  `;
+
+  return "data:image/svg+xml;charset=UTF-8," +
+    encodeURIComponent(svg);
+
+}
+
+
+function createId(){
+
+  return Date.now().toString(36) +
+    Math.random()
+      .toString(36)
+      .substring(2,10);
+
+}
+
+
+function escapeHtml(value){
+
+  return String(value ?? "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+
+}
+
+
+/* =========================================================
+   全域狀態
+========================================================= */
+
+let characters = [];
+
+let currentUser = null;
+
+let editingId = null;
+
+let cloudMode = false;
+
+let editingAvatar = "";
+
+
+/* =========================================================
+   本機資料
+========================================================= */
+
+function getLocalCharacters(){
+
+  try{
+
+    const data =
+      localStorage.getItem(
+        "rvca_characters"
+      );
+
+    if(!data){
+      return [];
+    }
+
+    const parsed =
+      JSON.parse(data);
+
+    return Array.isArray(parsed)
+      ? parsed
+      : [];
+
+  }catch(error){
+
+    console.error(
+      "讀取本機資料失敗",
+      error
+    );
+
+    return [];
+
+  }
+
+}
+
+
+function saveLocalCharacters(){
+
+  try{
+
+    localStorage.setItem(
+      "rvca_characters",
+      JSON.stringify(characters)
+    );
+
+  }catch(error){
+
+    console.error(
+      "儲存本機資料失敗",
+      error
+    );
+
+    alert(
+      "本機儲存失敗，可能是瀏覽器儲存空間不足。"
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   排序設定
+========================================================= */
+
+function loadSortSetting(){
+
+  const savedSort =
+    localStorage.getItem(
+      "rvca_sort"
+    );
+
+  const validSorts = [
+    "name",
+    "birthday",
+    "created",
+    "faction"
+  ];
+
+  if(
+    savedSort &&
+    validSorts.includes(
+      savedSort
+    )
+  ){
+
+    $("sort").value =
+      savedSort;
+
+  }else{
+
+    $("sort").value =
+      "name";
+
+  }
+
+}
+
+
+function changeSort(){
+
+  const sort =
+    $("sort").value;
+
+  localStorage.setItem(
+    "rvca_sort",
+    sort
+  );
+
+  render();
+
+}
+
+
+/* =========================================================
+   Firebase 路徑
+========================================================= */
+
+function characterCollection(){
+
+  if(!currentUser){
+    return null;
+  }
+
+  return db
+    .collection("users")
+    .doc(currentUser.uid)
+    .collection("characters");
+
+}
+
+
+/* =========================================================
+   Google 登入
+========================================================= */
+
+async function login(){
+
+  try{
+
+    await auth.signInWithPopup(
+      provider
+    );
+
+  }catch(error){
+
+    console.error(
+      "Google 登入錯誤",
+      error
+    );
+
+    if(
+      error.code ===
+      "auth/popup-blocked"
+    ){
+
+      try{
+
+        await auth.signInWithRedirect(
+          provider
+        );
+
+      }catch(redirectError){
+
+        console.error(
+          redirectError
+        );
+
+        alert(
+          "Google 登入失敗：" +
+          redirectError.message
+        );
+
+      }
+
+      return;
+
+    }
+
+    if(
+      error.code ===
+      "auth/popup-closed-by-user"
+    ){
+
+      return;
+
+    }
+
+    alert(
+      "Google 登入失敗：" +
+      error.message
+    );
+
+  }
+
+}
+
+
+async function logout(){
+
+  try{
+
+    await auth.signOut();
+
+  }catch(error){
+
+    console.error(
+      "登出失敗",
+      error
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   讀取雲端資料
+========================================================= */
+
+async function loadCloudData(){
+
+  if(!currentUser){
+    return;
+  }
+
+  try{
+
+    const snapshot =
+      await characterCollection()
+        .get();
+
+    characters =
+      snapshot.docs.map(
+        doc => ({
+          id:doc.id,
+          ...doc.data()
+        })
+      );
+
+    cloudMode = true;
+
+    updateStatus();
+
+    updateFactionFilter();
+
+    render();
+
+  }catch(error){
+
+    console.error(
+      "讀取 Firestore 失敗",
+      error
+    );
+
+    cloudMode = false;
+
+    characters =
+      getLocalCharacters();
+
+    updateStatus();
+
+    updateFactionFilter();
+
+    render();
+
+    alert(
+      "目前無法讀取雲端資料，已暫時切換到本機模式。\n\n" +
+      "如果是第一次使用，請確認 Firebase Firestore Security Rules 已設定。"
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   圖片壓縮
+========================================================= */
+
+function compressImage(
+  file,
+  maxSize = 1000,
+  quality = 0.82
+){
+
+  return new Promise(
+    (resolve,reject)=>{
+
+      if(!file){
+
+        resolve("");
+
+        return;
+
+      }
+
+      const reader =
+        new FileReader();
+
+      reader.onload =
+        function(event){
+
+          const img =
+            new Image();
+
+          img.onload =
+            function(){
+
+              let width =
+                img.width;
+
+              let height =
+                img.height;
+
+              if(
+                width > maxSize ||
+                height > maxSize
+              ){
+
+                const ratio =
+                  Math.min(
+                    maxSize / width,
+                    maxSize / height
+                  );
+
+                width =
+                  Math.round(
+                    width * ratio
+                  );
+
+                height =
+                  Math.round(
+                    height * ratio
+                  );
+
+              }
+
+              const canvas =
+                document.createElement(
+                  "canvas"
+                );
+
+              canvas.width =
+                width;
+
+              canvas.height =
+                height;
+
+              const ctx =
+                canvas.getContext(
+                  "2d"
+                );
+
+              ctx.drawImage(
+                img,
+                0,
+                0,
+                width,
+                height
+              );
+
+              let result =
+                canvas.toDataURL(
+                  "image/jpeg",
+                  quality
+                );
+
+              if(
+                result.length >
+                900000
+              ){
+
+                result =
+                  canvas.toDataURL(
+                    "image/jpeg",
+                    0.65
+                  );
+
+              }
+
+              resolve(result);
+
+            };
+
+          img.onerror =
+            function(){
+
+              reject(
+                new Error(
+                  "圖片讀取失敗"
+                )
+              );
+
+            };
+
+          img.src =
+            event.target.result;
+
+        };
+
+      reader.onerror =
+        function(){
+
+          reject(
+            new Error(
+              "檔案讀取失敗"
+            )
+          );
+
+        };
+
+      reader.readAsDataURL(file);
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   新增角色
+========================================================= */
+
+function openCreateModal(){
+
+  editingId = null;
+
+  editingAvatar = "";
+
+  $("editTitle").textContent =
+    "新增角色";
+
+  clearForm();
+
+  $("preview").src =
+    placeholder("角色");
+
+  $("editModal")
+    .classList
+    .add("show");
+
+}
+
+
+/* =========================================================
+   編輯角色
+========================================================= */
+
+function openEditModal(id){
+
+  const character =
+    characters.find(
+      c => c.id === id
+    );
+
+  if(!character){
+    return;
+  }
+
+  editingId =
+    id;
+
+  editingAvatar =
+    character.avatar || "";
+
+  $("editTitle").textContent =
+    "編輯角色";
+
+  $("name").value =
+    character.name ?? "";
+
+  $("alias").value =
+    character.alias ?? "";
+
+  $("birthday").value =
+    character.birthday ?? "";
+
+  $("age").value =
+    character.age ?? "";
+
+  $("gender").value =
+    character.gender ?? "";
+
+  $("race").value =
+    character.race ?? "";
+
+  /*
+    ★ 陣營資料
+    從原角色資料直接載入
+  */
+
+  $("faction").value =
+    character.faction ?? "";
+
+  /*
+    ★ 居住地
+  */
+
+  $("home").value =
+    character.home ?? "";
+
+  $("job").value =
+    character.job ?? "";
+
+  $("likes").value =
+    character.likes ?? "";
+
+  $("dislikes").value =
+    character.dislikes ?? "";
+
+  $("symbol").value =
+    character.symbol ?? "";
+
+  $("powers").value =
+    character.powers ?? "";
+
+  $("personality").value =
+    character.personality ?? "";
+
+  $("backstory").value =
+    character.backstory ?? "";
+
+  $("notes").value =
+    character.notes ?? "";
+
+  $("preview").src =
+    character.avatar ||
+    placeholder("角色");
+
+  $("avatar").value = "";
+
+  $("editModal")
+    .classList
+    .add("show");
+
+}
+
+
+/* =========================================================
+   清空表單
+========================================================= */
+
+function clearForm(){
+
+  const ids = [
+
+    "name",
+    "alias",
+    "birthday",
+    "age",
+    "gender",
+    "race",
+    "faction",
+    "home",
+    "job",
+    "likes",
+    "dislikes",
+    "symbol",
+    "powers",
+    "personality",
+    "backstory",
+    "notes"
+
+  ];
+
+  ids.forEach(
+    id => {
+
+      $(id).value = "";
+
+    }
+  );
+
+  $("avatar").value = "";
+
+}
+
+
+/* =========================================================
+   頭像選擇
+========================================================= */
+
+$("avatar")
+  .addEventListener(
+    "change",
+    async function(){
+
+      const file =
+        this.files?.[0];
+
+      if(!file){
+        return;
+      }
+
+      try{
+
+        editingAvatar =
+          await compressImage(
+            file
+          );
+
+        $("preview").src =
+          editingAvatar;
+
+      }catch(error){
+
+        console.error(
+          error
+        );
+
+        alert(
+          "圖片處理失敗。"
+        );
+
+      }
+
+    }
+  );
+
+
+/* =========================================================
+   ★ 取得編輯後的欄位資料
+   加入資料保護
+========================================================= */
+
+function getFormCharacter(){
+
+  return {
+
+    name:
+      $("name").value.trim(),
+
+    alias:
+      $("alias").value.trim(),
+
+    birthday:
+      $("birthday").value,
+
+    age:
+      $("age").value.trim(),
+
+    gender:
+      $("gender").value.trim(),
+
+    race:
+      $("race").value.trim(),
+
+    faction:
+      $("faction").value.trim(),
+
+    home:
+      $("home").value.trim(),
+
+    job:
+      $("job").value.trim(),
+
+    likes:
+      $("likes").value.trim(),
+
+    dislikes:
+      $("dislikes").value.trim(),
+
+    symbol:
+      $("symbol").value.trim(),
+
+    powers:
+      $("powers").value.trim(),
+
+    personality:
+      $("personality").value.trim(),
+
+    backstory:
+      $("backstory").value.trim(),
+
+    notes:
+      $("notes").value.trim(),
+
+    avatar:
+      editingAvatar || ""
+
+  };
+
+}
+
+
+/* =========================================================
+   ★ 儲存角色
+   特別保護原本資料
+========================================================= */
+
+async function saveCharacter(){
+
+  const name =
+    $("name").value.trim();
+
+  if(!name){
+
+    alert(
+      "請先輸入角色姓名。"
+    );
+
+    return;
+
+  }
+
+
+  /*
+    如果正在編輯，
+    先取得「儲存前的原始資料」
+  */
+
+  const oldCharacter =
+    editingId
+      ? characters.find(
+          c => c.id === editingId
+        )
+      : null;
+
+
+  /*
+    從表單取得資料
+  */
+
+  const formData =
+    getFormCharacter();
+
+
+  /*
+    ★★★ 重要的資料保護 ★★★
+
+    如果是編輯既有角色，
+    而某個欄位沒有成功從表單讀到，
+    就保留原本資料。
+
+    特別是 faction / 陣營。
+  */
+
+  let character;
+
+
+  if(oldCharacter){
+
+    character = {
+
+      ...oldCharacter,
+
+      ...formData,
+
+      id:
+        oldCharacter.id,
+
+      created:
+        oldCharacter.created ||
+        Date.now()
+
+    };
+
+
+    /*
+      陣營保護：
+      如果原本有陣營，
+      但表單讀取異常而變成 undefined/null，
+      不允許覆蓋掉原資料。
+    */
+
+    if(
+      formData.faction ===
+      undefined ||
+      formData.faction ===
+      null
+    ){
+
+      character.faction =
+        oldCharacter.faction || "";
+
+    }
+
+
+    /*
+      如果頭像沒有重新選，
+      保留原本頭像。
+    */
+
+    if(
+      !editingAvatar &&
+      oldCharacter.avatar
+    ){
+
+      character.avatar =
+        oldCharacter.avatar;
+
+    }
+
+  }else{
+
+    character = {
+
+      ...formData,
+
+      id:
+        createId(),
+
+      created:
+        Date.now()
+
+    };
+
+  }
+
+
+  try{
+
+    /*
+      ================================
+      雲端模式
+      ================================
+    */
+
+    if(
+      currentUser &&
+      cloudMode
+    ){
+
+      const data = {
+        ...character
+      };
+
+      delete data.id;
+
+
+      /*
+        使用 set 儲存完整角色資料。
+      */
+
+      await characterCollection()
+        .doc(character.id)
+        .set(
+          data,
+          {
+            merge:false
+          }
+        );
+
+
+    }else{
+
+      /*
+        ================================
+        本機模式
+        ================================
+      */
+
+      const index =
+        characters.findIndex(
+          c =>
+            c.id === character.id
+        );
+
+
+      if(index >= 0){
+
+        characters[index] =
+          character;
+
+      }else{
+
+        characters.push(
+          character
+        );
+
+      }
+
+      saveLocalCharacters();
+
+    }
+
+
+    /*
+      更新畫面中的角色
+    */
+
+    const index =
+      characters.findIndex(
+        c =>
+          c.id === character.id
+      );
+
+
+    if(index >= 0){
+
+      characters[index] =
+        character;
+
+    }else{
+
+      characters.push(
+        character
+      );
+
+    }
+
+
+    updateFactionFilter();
+
+    render();
+
+    closeEditModal();
+
+
+  }catch(error){
+
+    console.error(
+      "儲存角色失敗",
+      error
+    );
+
+    alert(
+      "角色儲存失敗：\n" +
+      error.message
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   刪除角色
+========================================================= */
+
+async function deleteCharacter(id){
+
+  const character =
+    characters.find(
+      c => c.id === id
+    );
+
+  if(!character){
+    return;
+  }
+
+  const ok =
+    confirm(
+      `確定要刪除「${character.name}」嗎？`
+    );
+
+  if(!ok){
+    return;
+  }
+
+  try{
+
+    if(
+      currentUser &&
+      cloudMode
+    ){
+
+      await characterCollection()
+        .doc(id)
+        .delete();
+
+    }
+
+    characters =
+      characters.filter(
+        c => c.id !== id
+      );
+
+    if(
+      !currentUser ||
+      !cloudMode
+    ){
+
+      saveLocalCharacters();
+
+    }
+
+    updateFactionFilter();
+
+    render();
+
+  }catch(error){
+
+    console.error(
+      "刪除角色失敗",
+      error
+    );
+
+    alert(
+      "刪除角色失敗：\n" +
+      error.message
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   關閉編輯視窗
+========================================================= */
+
+function closeEditModal(){
+
+  $("editModal")
+    .classList
+    .remove("show");
+
+}
+
+
+/* =========================================================
+   查看角色
+========================================================= */
+
+function viewCharacter(id){
+
+  const c =
+    characters.find(
+      x => x.id === id
+    );
+
+  if(!c){
+    return;
+  }
+
+  const avatar =
+    c.avatar ||
+    placeholder("角色");
+
+  $("viewContent").innerHTML = `
+
+    <div class="view-avatar">
+
+      <img
+        src="${escapeHtml(avatar)}"
+        alt="角色頭像"
+        onerror="this.src='${placeholder("角色")}'"
+      >
+
+    </div>
+
+
+    <div
+      class="modal-title"
+      style="text-align:center"
+    >
+      ${escapeHtml(
+        c.name || "未命名角色"
+      )}
+    </div>
+
+
+    ${
+      c.alias
+      ? `
+        <div
+          style="
+            text-align:center;
+            color:#888;
+            margin-top:-12px;
+            margin-bottom:20px;
+          "
+        >
+          ${escapeHtml(c.alias)}
+        </div>
+      `
+      : ""
+    }
+
+
+    <div class="view-grid">
+
+      ${viewItem("生日",c.birthday)}
+
+      ${viewItem("年齡",c.age)}
+
+      ${viewItem("性別",c.gender)}
+
+      ${viewItem("種族",c.race)}
+
+      ${viewItem("陣營",c.faction)}
+
+      ${viewItem("居住地",c.home)}
+
+      ${viewItem("職業",c.job)}
+
+      ${viewItem("代表符號",c.symbol)}
+
+      ${viewItem("能力",c.powers)}
+
+      ${viewItem("喜歡",c.likes,true)}
+
+      ${viewItem("不喜歡",c.dislikes,true)}
+
+      ${viewItem("個性",c.personality,true)}
+
+      ${viewItem("背景故事",c.backstory,true)}
+
+      ${viewItem("備註",c.notes,true)}
+
+    </div>
+
+  `;
+
+  $("viewModal")
+    .classList
+    .add("show");
+
+}
+
+
+function viewItem(
+  label,
+  value,
+  full = false
+){
+
+  if(
+    !value &&
+    value !== 0
+  ){
+
+    return "";
+
+  }
+
+  return `
+
+    <div
+      class="view-item ${full ? "full" : ""}"
+    >
+
+      <div class="view-label">
+        ${label}
+      </div>
+
+      <div class="view-value">
+        ${escapeHtml(
+          String(value)
+        )}
+      </div>
+
+    </div>
+
+  `;
+
+}
+
+
+/* =========================================================
+   關閉查看視窗
+========================================================= */
+
+function closeViewModal(){
+
+  $("viewModal")
+    .classList
+    .remove("show");
+
+}
+
+
+/* =========================================================
+   更新陣營篩選
+========================================================= */
+
+function updateFactionFilter(){
+
+  const select =
+    $("factionFilter");
+
+  const oldValue =
+    select.value;
+
+  const factions =
+    [...new Set(
+
+      characters
+        .map(
+          c =>
+            (c.faction || "")
+              .trim()
+        )
+        .filter(Boolean)
+
+    )]
+    .sort(
+      (a,b) =>
+        a.localeCompare(
+          b,
+          "zh-Hant"
+        )
+    );
+
+  select.innerHTML =
+    `<option value="">
+      全部陣營
+    </option>`;
+
+  factions.forEach(
+    faction => {
+
+      const option =
+        document.createElement(
+          "option"
+        );
+
+      option.value =
+        faction;
+
+      option.textContent =
+        faction;
+
+      select.appendChild(
+        option
+      );
+
+    }
+  );
+
+  if(
+    factions.includes(
+      oldValue
+    )
+  ){
+
+    select.value =
+      oldValue;
+
+  }
+
+}
+
+
+/* =========================================================
+   Render
+========================================================= */
+
+function render(){
+
+  const container =
+    $("cards");
+
+  const keyword =
+    $("search")
+      .value
+      .trim()
+      .toLowerCase();
+
+  const factionFilter =
+    $("factionFilter")
+      .value;
+
+  const sort =
+    $("sort")
+      .value;
+
+  let list =
+    characters.filter(
+      character => {
+
+        const text = [
+
+          character.name,
+
+          character.alias,
+
+          character.faction,
+
+          character.race,
+
+          character.home,
+
+          character.job
+
+        ]
+        .join(" ")
+        .toLowerCase();
+
+        const keywordMatch =
+          !keyword ||
+          text.includes(
+            keyword
+          );
+
+        const factionMatch =
+          !factionFilter ||
+          character.faction ===
+            factionFilter;
+
+        return (
+          keywordMatch &&
+          factionMatch
+        );
+
+      }
+    );
+
+
+  /* =======================================================
+     排序
+  ======================================================= */
+
+  list.sort(
+    function(a,b){
+
+      /*
+        生日
+      */
+
+      if(
+        sort ===
+        "birthday"
+      ){
+
+        return (
+
+          (a.birthday || "")
+            .localeCompare(
+              b.birthday || ""
+            )
+
+        );
+
+      }
+
+
+      /*
+        建立時間
+      最新建立的在前面
+      */
+
+      if(
+        sort ===
+        "created"
+      ){
+
+        return (
+
+          (b.created || 0) -
+          (a.created || 0)
+
+        );
+
+      }
+
+
+      /*
+        ★ 陣營
+      */
+
+      if(
+        sort ===
+        "faction"
+      ){
+
+        const factionA =
+          (
+            a.faction ||
+            "未設定陣營"
+          )
+          .trim();
+
+        const factionB =
+          (
+            b.faction ||
+            "未設定陣營"
+          )
+          .trim();
+
+        const result =
+          factionA.localeCompare(
+            factionB,
+            "zh-Hant"
+          );
+
+        /*
+          同陣營再依姓名
+        */
+
+        if(
+          result === 0
+        ){
+
+          return (
+
+            (a.name || "")
+              .localeCompare(
+                b.name || "",
+                "zh-Hant"
+              )
+
+          );
+
+        }
+
+        return result;
+
+      }
+
+
+      /*
+        姓名
+      */
+
+      return (
+
+        (a.name || "")
+          .localeCompare(
+            b.name || "",
+            "zh-Hant"
+          )
+
+      );
+
+    }
+  );
+
+
+  if(
+    list.length === 0
+  ){
+
+    container.innerHTML = `
+
+      <div class="empty">
+
+        <div
+          style="
+            font-size:40px;
+            margin-bottom:10px;
+          "
+        >
+          ✦
+        </div>
+
+        目前沒有找到角色
+
+      </div>
+
+    `;
+
+    return;
+
+  }
+
+
+  container.innerHTML =
+    list
+      .map(
+        character =>
+          createCard(
+            character
+          )
+      )
+      .join("");
+
+}
+
+
+/* =========================================================
+   角色卡片
+========================================================= */
+
+function createCard(c){
+
+  const avatar =
+    c.avatar ||
+    placeholder("角色");
+
+  return `
+
+    <div class="card">
+
+      <div class="card-image">
+
+        <img
+          src="${escapeHtml(avatar)}"
+          alt="${escapeHtml(
+            c.name || "角色"
+          )}"
+          onerror="this.src='${placeholder("角色")}'"
+        >
+
+      </div>
+
+
+      <div class="card-body">
+
+        <div class="card-name">
+
+          ${escapeHtml(
+            c.name ||
+            "未命名角色"
+          )}
+
+        </div>
+
+
+        ${
+          c.alias
+          ? `
+            <div class="card-alias">
+              ${escapeHtml(c.alias)}
+            </div>
+          `
+          : ""
+        }
+
+
+        <div class="tags">
+
+          ${
+            c.faction
+            ? `
+              <span class="tag">
+                ${escapeHtml(c.faction)}
+              </span>
+            `
+            : ""
+          }
+
+
+          ${
+            c.race
+            ? `
+              <span class="tag">
+                ${escapeHtml(c.race)}
+              </span>
+            `
+            : ""
+          }
+
+        </div>
+
+
+        <div class="card-info">
+
+          ${
+            c.birthday
+            ? `
+              <div>
+                🎂 ${escapeHtml(c.birthday)}
+              </div>
+            `
+            : ""
+          }
+
+
+          ${
+            c.age
+            ? `
+              <div>
+                年齡：${escapeHtml(c.age)}
+              </div>
+            `
+            : ""
+          }
+
+
+          ${
+            c.job
+            ? `
+              <div>
+                職業：${escapeHtml(c.job)}
+              </div>
+            `
+            : ""
+          }
+
+        </div>
+
+
+        <div class="card-actions">
+
+          <button
+            class="btn small"
+            data-action="view"
+            data-id="${escapeHtml(c.id)}"
+          >
+            查看
+          </button>
+
+
+          <button
+            class="btn secondary small"
+            data-action="edit"
+            data-id="${escapeHtml(c.id)}"
+          >
+            編輯
+          </button>
+
+
+          <button
+            class="btn danger small"
+            data-action="delete"
+            data-id="${escapeHtml(c.id)}"
+          >
+            刪除
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  `;
+
+}
+
+
+/* =========================================================
+   卡片按鈕事件
+========================================================= */
+
+$("cards")
+  .addEventListener(
+    "click",
+    function(event){
+
+      const button =
+        event.target.closest(
+          "[data-action]"
+        );
+
+      if(!button){
+        return;
+      }
+
+      const action =
+        button.dataset.action;
+
+      const id =
+        button.dataset.id;
+
+      if(
+        action ===
+        "view"
+      ){
+
+        viewCharacter(id);
+
+      }
+
+      if(
+        action ===
+        "edit"
+      ){
+
+        openEditModal(id);
+
+      }
+
+      if(
+        action ===
+        "delete"
+      ){
+
+        deleteCharacter(id);
+
+      }
+
+    }
+  );
+
+
+/* =========================================================
+   搜尋
+========================================================= */
+
+$("search")
+  .addEventListener(
+    "input",
+    render
+  );
+
+
+$("factionFilter")
+  .addEventListener(
+    "change",
+    render
+  );
+
+
+/* =========================================================
+   匯出 JSON
+========================================================= */
+
+function exportData(){
+
+  if(
+    characters.length === 0
+  ){
+
+    alert(
+      "目前沒有角色可以匯出。"
+    );
+
+    return;
+
+  }
+
+  const json =
+    JSON.stringify(
+      characters,
+      null,
+      2
+    );
+
+  const blob =
+    new Blob(
+      [json],
+      {
+        type:
+          "application/json"
+      }
+    );
+
+  const url =
+    URL.createObjectURL(
+      blob
+    );
+
+  const a =
+    document.createElement(
+      "a"
+    );
+
+  a.href =
+    url;
+
+  a.download =
+    "RVCA_角色庫備份.json";
+
+  document.body.appendChild(
+    a
+  );
+
+  a.click();
+
+  a.remove();
+
+  URL.revokeObjectURL(
+    url
+  );
+
+}
+
+
+/* =========================================================
+   匯入 JSON
+========================================================= */
+
+$("importFile")
+  .addEventListener(
+    "change",
+    async function(){
+
+      const file =
+        this.files?.[0];
+
+      if(!file){
+        return;
+      }
+
+      try{
+
+        const text =
+          await file.text();
+
+        const imported =
+          JSON.parse(text);
+
+        if(
+          !Array.isArray(
+            imported
+          )
+        ){
+
+          throw new Error(
+            "JSON 格式必須是角色陣列。"
+          );
+
+        }
+
+
+        const normalized =
+          imported.map(
+            character => {
+
+              return {
+
+                ...character,
+
+                id:
+                  character.id ||
+                  createId(),
+
+                created:
+                  character.created ||
+                  Date.now()
+
+              };
+
+            }
+          );
+
+
+        const ok =
+          confirm(
+            `即將匯入 ${normalized.length} 個角色。\n\n` +
+            "如果存在相同 ID，可能會覆蓋原本角色。\n\n" +
+            "確定要繼續嗎？"
+          );
+
+        if(!ok){
+          return;
+        }
+
+
+        if(
+          currentUser &&
+          cloudMode
+        ){
+
+          const chunkSize =
+            450;
+
+          for(
+            let i = 0;
+            i < normalized.length;
+            i += chunkSize
+          ){
+
+            const chunk =
+              normalized.slice(
+                i,
+                i + chunkSize
+              );
+
+            const batch =
+              db.batch();
+
+            chunk.forEach(
+              character => {
+
+                const data = {
+                  ...character
+                };
+
+                delete data.id;
+
+                const ref =
+                  characterCollection()
+                    .doc(
+                      character.id
+                    );
+
+                batch.set(
+                  ref,
+                  data
+                );
+
+              }
+            );
+
+            await batch.commit();
+
+          }
+
+          characters =
+            normalized;
+
+        }else{
+
+          characters =
+            normalized;
+
+          saveLocalCharacters();
+
+        }
+
+
+        updateFactionFilter();
+
+        render();
+
+        alert(
+          `成功匯入 ${normalized.length} 個角色。`
+        );
+
+
+      }catch(error){
+
+        console.error(
+          "匯入失敗",
+          error
+        );
+
+        alert(
+          "匯入失敗：\n" +
+          error.message
+        );
+
+      }
+
+      this.value = "";
+
+    }
+  );
+
+
+/* =========================================================
+   狀態顯示
+========================================================= */
+
+function updateStatus(){
+
+  const status =
+    $("status");
+
+  if(
+    currentUser &&
+    cloudMode
+  ){
+
+    status.textContent =
+      "☁️ 已登入 Google，角色資料儲存在雲端";
+
+    status.className =
+      "status cloud";
+
+  }else{
+
+    status.textContent =
+      "目前使用本機儲存";
+
+    status.className =
+      "status local";
+
+  }
+
+}
+
+
+/* =========================================================
+   Firebase 登入狀態
+========================================================= */
+
+auth.onAuthStateChanged(
+  async function(user){
+
+    currentUser =
+      user;
+
+    if(user){
+
+      $("loginBtn")
+        .classList
+        .add("hidden");
+
+      $("logoutBtn")
+        .classList
+        .remove("hidden");
+
+      $("userName")
+        .textContent =
+        user.displayName ||
+        user.email ||
+        "";
+
+      cloudMode = true;
+
+      updateStatus();
+
+      await loadCloudData();
+
+    }else{
+
+      $("loginBtn")
+        .classList
+        .remove("hidden");
+
+      $("logoutBtn")
+        .classList
+        .add("hidden");
+
+      $("userName")
+        .textContent =
+        "";
+
+      cloudMode = false;
+
+      characters =
+        getLocalCharacters();
+
+      updateStatus();
+
+      updateFactionFilter();
+
+      render();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   Modal 點擊外部關閉
+========================================================= */
+
+$("editModal")
+  .addEventListener(
+    "click",
+    function(event){
+
+      if(
+        event.target ===
+        $("editModal")
+      ){
+
+        closeEditModal();
+
+      }
+
+    }
+  );
+
+
+$("viewModal")
+  .addEventListener(
+    "click",
+    function(event){
+
+      if(
+        event.target ===
+        $("viewModal")
+      ){
+
+        closeViewModal();
+
+      }
+
+    }
+  );
+
+
+/* =========================================================
+   ESC 關閉
+========================================================= */
+
+document.addEventListener(
+  "keydown",
+  function(event){
+
+    if(
+      event.key ===
+      "Escape"
+    ){
+
+      closeEditModal();
+
+      closeViewModal();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   初始設定
+========================================================= */
+
+loadSortSetting();
+
+$("preview").src =
+  placeholder("角色");
+
+updateFactionFilter();
+
+render();
+
+</script>
+
+</body>
+  </html>
